@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu May 20 11:11:46 2016
+# @Author: liuyulin
+# @Date:   2018-08-16 14:51:38
+# @Last Modified by:   liuyulin
+# @Last Modified time: 2018-08-16 16:34:20
 
-@ Author: Liu, Yulin
-@ Institute: UC Berkeley
-"""
-from __future__ import division
+# api functions that are mostly called by other paks
+
+# Trajectory dimension reduction algo.
 import numpy as np
 
 # reference:
@@ -53,16 +54,16 @@ def LineDist(Si,Ei,Sj,Ej,Out = 'All'):
     else:
         D_perp = (L_perp1**2 + L_perp2**2)/(L_perp1+L_perp2)
     
-    L_para1 = min(np.sqrt(np.dot(Ps-Si,Ps-Si)),np.sqrt(np.dot(Ps-Ei,Ps-Ei)))
-    L_para2 = min(np.sqrt(np.dot(Ei-Pe,Ei-Pe)),np.sqrt(np.dot(Si-Pe,Si-Pe)))
-    D_para = min(L_para1,L_para2)
+    L_para1 = min(np.dot(Ps-Si,Ps-Si),np.dot(Ps-Ei,Ps-Ei))
+    L_para2 = min(np.dot(Ei-Pe,Ei-Pe),np.dot(Si-Pe,Si-Pe))
+    D_para = np.sqrt(min(L_para1,L_para2))
     
     if CosTheta >= 0 and CosTheta < 1:
         D_theta = np.sqrt(np.dot(SjEj,SjEj)) * np.sqrt(1-CosTheta**2)
     elif CosTheta < 0:
         D_theta = np.sqrt(np.dot(SjEj,SjEj))
     else:
-        D_theta = 0        
+        D_theta = 0
     
     D_line = D_perp + D_para + D_theta    
     
@@ -74,15 +75,14 @@ def LineDist(Si,Ei,Sj,Ej,Out = 'All'):
         return D_perp + D_theta
     else:
         raise ValueError('Out can only be All, Total or Nopara')
-# In[27]:
 
 def MDL_PAR(Traj, m, n, dist = lambda a, b: np.sqrt(sum((a - b)**2))):
     LH  = (dist(Traj[m],Traj[n]))
     LD = 0
     for i in range(m,n):
         DD = LineDist(Traj[m],Traj[n],Traj[i],Traj[i+1])
-        LD += (DD[0]) + (DD[2])  
-    LL = LH + LD
+        LD += np.log2(DD[0] + 1) + np.log2(DD[2] + 1)
+    LL = np.log2(LH + 1) + LD
     return LL
 
 def MDL_NOPAR(Traj, m, n, dist = lambda a, b: np.sqrt(sum((a - b)**2))):
@@ -91,13 +91,10 @@ def MDL_NOPAR(Traj, m, n, dist = lambda a, b: np.sqrt(sum((a - b)**2))):
     for i in range(m,n):
         LH += (dist(Traj[i],Traj[i+1]))
 
-    LL = LD + LH
+    LL = np.log2(LH + 1) + np.log2(LD + 1)
     return LL
 
-
-# In[35]:
-
-def GetCharaPnt(Traj,alpha):
+def GetCharaPnt(Traj,alpha, dist = lambda a, b: np.sqrt(sum((a - b)**2))):
     """
     Get Characteristic points
     
@@ -105,23 +102,21 @@ def GetCharaPnt(Traj,alpha):
     Traj = np.random.random((300,2))
     aa = time.time()
     CP = GetCharaPnt(Traj,1.5)
-    print time.time() - aa
-    print len(CP)
+    print(time.time() - aa)
+    print(len(CP))
     """
-    startIndex = 0
+    startIndex = 1
     Length = 1
-    CP = [startIndex]
+    CP = [0]
     while startIndex + Length < Traj.shape[0]:
-        
         currIndex = startIndex + Length
-#         print currIndex
-        cost_par = MDL_PAR(Traj, startIndex, currIndex)
-        cost_nopar = MDL_NOPAR(Traj, startIndex, currIndex)
-
+        cost_par = MDL_PAR(Traj, startIndex, currIndex, dist)
+        cost_nopar = MDL_NOPAR(Traj, startIndex, currIndex, dist)
+        # print(currIndex, startIndex, Length, cost_par, cost_nopar)
         if cost_par > cost_nopar * alpha:
-            CP.append(currIndex-1)
             startIndex = currIndex - 1
             Length = 1
+            CP.append(startIndex)
         else:
             Length += 1
     CP.append(Traj.shape[0]-1)
@@ -153,4 +148,3 @@ def GetCharaPnt(Traj,alpha):
 #                    cost = min(cost,L[i-1][kk] + Err(Traj, kk+1,j+1))
 #                    L[i][j] = cost
 #    return L
-
