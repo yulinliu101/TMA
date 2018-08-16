@@ -8,7 +8,9 @@ Created on Thu May 20 11:11:46 2016
 from __future__ import division
 import numpy as np
 
-# In[19]:
+# reference:
+# http://hanj.cs.illinois.edu/pdf/sigmod07_jglee.pdf
+# Lee, Han and Whang (2007) trajectory clustering a partition-and-group framework
 
 def ReshapeTrajLine(Traj):
     RepeatIndex = np.ones(Traj.shape[0],dtype=int)*2
